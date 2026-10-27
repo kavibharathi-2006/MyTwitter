@@ -1,0 +1,503 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Twitter</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #e4c876;
+            margin: 0;
+        }
+
+        header {
+            background: #ffb361;
+            color: white;
+            text-align: center;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 10px;
+        }
+
+        .box, .post, .user {
+            background: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+        }
+
+        input, textarea {
+            width: 95%;
+            padding: 10px;
+            margin: 7px 0;
+            border: 1px solid #ccc;
+            border-radius: 7px;
+        }
+
+        textarea {
+            height: 60px;
+        }
+
+        button {
+            background:  #ffb361;
+            color: white;
+            border: 0;
+            padding: 9px 13px;
+            margin: 4px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        .like {
+            background: white;
+            color: #e0245e;
+            border: 1px solid #e0245e;
+        }
+
+        .dark {
+            background:  #ffb361;
+        }
+
+        .name {
+            color: #1da1f2;
+            cursor: pointer;
+        }
+
+        .postImage {
+            display: block;
+            width: 100%;
+            max-width: 400px;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+
+        #app, #profile, #userList {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>My Twitter</h1>
+    <p>Connect with people!</p>
+</header>
+
+<div class="container" id="login">
+    <div class="box">
+        <h2>Login</h2>
+        <input id="username" placeholder="Username">
+        <input id="password" type="password"
+               placeholder="Password">
+        <button onclick="loginUser()">Login</button>
+        <p id="error"></p>
+    </div>
+</div>
+
+<div class="container" id="app">
+    <button onclick="home()">Home</button>
+    <button onclick="people()">Find People</button>
+    <button onclick="profile(current)">My Profile</button>
+    <button class="dark" onclick="logout()">Logout</button>
+
+    <h2 id="welcome"></h2>
+
+    <div class="box" id="writeBox">
+        <textarea id="message"
+                  placeholder="What's happening?"></textarea>
+
+        <p>Choose an image to post:</p>
+        <input type="file" id="postImage" accept="image/*">
+
+        <button onclick="addPost()">Post</button>
+    </div>
+
+    <div id="peoplePage" style="display:none">
+        <h2>Find People</h2>
+        <div id="people"></div>
+    </div>
+
+    <div id="feed">
+        <h2>Latest Posts</h2>
+        <div id="posts"></div>
+    </div>
+</div>
+
+<div class="container" id="profile">
+    <button onclick="home()">Back</button>
+
+    <div class="box">
+        <h2 id="profileName"></h2>
+        <p id="bio"></p>
+
+        <button onclick="showList('followers')">
+            Followers: <span id="followers">0</span>
+        </button>
+
+        <button onclick="showList('following')">
+            Following: <span id="followingCount">0</span>
+        </button>
+
+        <button id="followBtn" onclick="followUser()">Follow</button>
+    </div>
+
+    <h2>Posts</h2>
+    <div id="profilePosts"></div>
+</div>
+
+<div class="container" id="userList">
+    <button onclick="profile(viewing)">Back</button>
+    <h2 id="listTitle"></h2>
+    <div id="list"></div>
+</div>
+
+<script>
+    var current = "";
+    var viewing = "";
+
+    var users = ["Kavi", "Arun", "Priya", "Rahul"];
+
+    var following = {
+        Kavi: ["Priya"],
+        Arun: ["Kavi"],
+        Priya: ["Kavi", "Rahul"],
+        Rahul: ["Arun"]
+    };
+
+    var posts = [
+        {
+            id: 1,
+            name: "Arun",
+            text: "Hello everyone!",
+            image: "",
+            likes: [],
+            comments: []
+        },
+        {
+            id: 2,
+            name: "Priya",
+            text: "My new UI design!",
+            image: "",
+            likes: [],
+            comments: []
+        },
+        {
+            id: 3,
+            name: "Rahul",
+            text: "Learning JavaScript!",
+            image: "",
+            likes: [],
+            comments: []
+        }
+    ];
+
+    var nextId = 4;
+
+    function loginUser() {
+        var name = document.getElementById("username")
+            .value.trim();
+
+        var pass = document.getElementById("password").value;
+
+        if (!name || !pass) {
+            document.getElementById("error").textContent =
+                "Enter username and password!";
+            return;
+        }
+
+        current = users.find(function(u) {
+            return u.toLowerCase() === name.toLowerCase();
+        }) || name;
+
+        if (!users.includes(current)) {
+            users.push(current);
+        }
+
+        if (!following[current]) {
+            following[current] = [];
+        }
+
+        document.getElementById("login").style.display = "none";
+        document.getElementById("app").style.display = "block";
+
+        document.getElementById("welcome").textContent =
+            "Welcome, " + current + "!";
+
+        home();
+    }
+
+    function hide() {
+        ["app", "profile", "userList"].forEach(function(id) {
+            document.getElementById(id).style.display = "none";
+        });
+    }
+
+    function home() {
+        hide();
+
+        document.getElementById("app").style.display = "block";
+        document.getElementById("feed").style.display = "block";
+        document.getElementById("peoplePage").style.display = "none";
+
+        render(posts, "posts");
+    }
+
+    function people() {
+        home();
+
+        document.getElementById("feed").style.display = "none";
+        document.getElementById("peoplePage").style.display = "block";
+
+        var area = document.getElementById("people");
+        area.innerHTML = "";
+
+        users.forEach(function(u) {
+            if (u === current) return;
+
+            var div = document.createElement("div");
+            div.className = "user";
+            div.textContent = u + " ";
+
+            var btn = document.createElement("button");
+            btn.textContent = "View Profile";
+
+            btn.onclick = function() {
+                profile(u);
+            };
+
+            div.appendChild(btn);
+            area.appendChild(div);
+        });
+    }
+
+    function addPost() {
+        var text = document.getElementById("message").value.trim();
+        var file = document.getElementById("postImage").files[0];
+
+        if (!text && !file) {
+            return alert("Write a post or select an image!");
+        }
+
+        if (file && !file.type.startsWith("image/")) {
+            return alert("Please select an image file!");
+        }
+
+        var imageURL = file ? URL.createObjectURL(file) : "";
+
+        posts.unshift({
+            id: nextId++,
+            name: current,
+            text: text,
+            image: imageURL,
+            likes: [],
+            comments: []
+        });
+
+        document.getElementById("message").value = "";
+        document.getElementById("postImage").value = "";
+
+        home();
+    }
+
+    function render(data, target) {
+        var area = document.getElementById(target);
+        area.innerHTML = "";
+
+        data.forEach(function(p) {
+            var div = document.createElement("div");
+            div.className = "post";
+
+            var name = document.createElement("h3");
+            name.className = "name";
+            name.textContent = p.name;
+
+            name.onclick = function() {
+                profile(p.name);
+            };
+
+            var text = document.createElement("p");
+            text.textContent = p.text;
+
+            div.append(name, text);
+
+            if (p.image) {
+                var img = document.createElement("img");
+                img.src = p.image;
+                img.className = "postImage";
+                img.alt = "Post image";
+
+                div.appendChild(img);
+            }
+
+            var like = document.createElement("button");
+            like.className = "like";
+
+            like.textContent =
+                (p.likes.includes(current) ? "♥" : "♡")
+                + " Like " + p.likes.length;
+
+            like.onclick = function() {
+                var i = p.likes.indexOf(current);
+
+                if (i < 0) {
+                    p.likes.push(current);
+                } else {
+                    p.likes.splice(i, 1);
+                }
+
+                refresh();
+            };
+
+            var input = document.createElement("input");
+            input.placeholder = "Write a comment";
+
+            var comment = document.createElement("button");
+            comment.textContent = "Comment";
+
+            comment.onclick = function() {
+                if (!input.value.trim()) return;
+
+                p.comments.push(
+                    current + ": " + input.value.trim()
+                );
+
+                refresh();
+            };
+
+            div.append(like, input, comment);
+
+            p.comments.forEach(function(c) {
+                var line = document.createElement("p");
+                line.textContent = c;
+                div.appendChild(line);
+            });
+
+            if (p.name === current) {
+                var del = document.createElement("button");
+                del.className = "dark";
+                del.textContent = "Delete";
+
+                del.onclick = function() {
+                    posts = posts.filter(function(x) {
+                        return x.id !== p.id;
+                    });
+
+                    refresh();
+                };
+
+                div.appendChild(del);
+            }
+
+            area.appendChild(div);
+        });
+    }
+
+    function profile(user) {
+        viewing = user;
+        hide();
+
+        document.getElementById("profile").style.display = "block";
+        document.getElementById("profileName").textContent = user;
+        document.getElementById("bio").textContent =
+            user + "'s profile";
+
+        var followers = users.filter(function(u) {
+            return (following[u] || []).includes(user);
+        });
+
+        document.getElementById("followers").textContent =
+            followers.length;
+
+        document.getElementById("followingCount").textContent =
+            (following[user] || []).length;
+
+        var btn = document.getElementById("followBtn");
+
+        btn.style.display =
+            user === current ? "none" : "inline-block";
+
+        btn.textContent =
+            (following[current] || []).includes(user)
+                ? "Unfollow" : "Follow";
+
+        render(
+            posts.filter(function(p) {
+                return p.name === user;
+            }),
+            "profilePosts"
+        );
+    }
+
+    function followUser() {
+        var list = following[current];
+        var i = list.indexOf(viewing);
+
+        if (i < 0) {
+            list.push(viewing);
+        } else {
+            list.splice(i, 1);
+        }
+
+        profile(viewing);
+    }
+
+    function showList(type) {
+        hide();
+
+        document.getElementById("userList").style.display = "block";
+
+        document.getElementById("listTitle").textContent =
+            type === "followers" ? "Followers" : "Following";
+
+        var people = type === "followers"
+            ? users.filter(function(u) {
+                return (following[u] || []).includes(viewing);
+            })
+            : following[viewing] || [];
+
+        var area = document.getElementById("list");
+        area.innerHTML = "";
+
+        people.forEach(function(u) {
+            var btn = document.createElement("button");
+            btn.textContent = u;
+
+            btn.onclick = function() {
+                profile(u);
+            };
+
+            area.appendChild(btn);
+        });
+
+        if (people.length === 0) {
+            area.textContent = "No users yet.";
+        }
+    }
+
+    function refresh() {
+        if (document.getElementById("profile").style.display === "block") {
+            profile(viewing);
+        } else {
+            home();
+        }
+    }
+
+    function logout() {
+        current = "";
+        hide();
+
+        document.getElementById("login").style.display = "block";
+        document.getElementById("username").value = "";
+        document.getElementById("password").value = "";
+        document.getElementById("error").textContent = "";
+    }
+</script>
+
+</body>
+</html>
